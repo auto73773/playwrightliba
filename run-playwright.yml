@@ -1,4 +1,4 @@
-name: Run Playwright Script and Commit Results
+name: pl.py
 
 on:
   push:
