@@ -26,7 +26,7 @@ jobs:
 
     - name: Run Python script
       run: |
-        python my_playwright_script.py
+        python pl.py
 
     - name: Commit and push results
       run: |
