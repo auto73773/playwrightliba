@@ -119,4 +119,7 @@ async def get_next_data():
 # Run the async function in Jupyter Notebook
 asyncio.run(get_next_data())
 
+# Run the async function in Jupyter Notebook
+
+
   
