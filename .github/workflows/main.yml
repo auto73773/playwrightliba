@@ -38,7 +38,7 @@ jobs:
       - name: Run Playwright script
         run: |
           python pl.py
-
+# Step 5: Run your Playwright script
       - name: Upload data artifacts
         uses: actions/upload-artifact@v3
         with:
