@@ -5,10 +5,11 @@ from playwright.async_api import async_playwright
 import nest_asyncio
 import dropbox
 from io import StringIO
-
+import os
 # Allow nested event loops in Jupyter
 nest_asyncio.apply()
-ACCESS_TOKEN= {{ secrets.ACCESS_TOKEN }}
+
+ACCESS_TOKEN=os.getenv('DROPBOX_ACCESS_TOKEN')
 # Initialize Dropbox client with your access token
 dbx = dropbox.Dropbox(ACCESS_TOKEN)
 
