@@ -4,6 +4,12 @@ name: Playwright Automation
 on:
   schedule:
     - cron: '0 0 * * *'  # Every day at midnight (UTC)
+  workflow_dispatch:   # Allows manual triggering
+      inputs:
+        example_input:
+          description: 'An example input'
+          required: false
+          default: 'default_value'
 
 # Specify the jobs to be done
 jobs:
