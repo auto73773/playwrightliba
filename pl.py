@@ -67,7 +67,7 @@ async def scrape_service_link(browser, service_link, state_link, city_link, all_
         json_data = json.dumps(all_data, indent=4)
 
         # Upload JSON string to Box
-        box_folder_id = '283381530874'  # Replace with your Box folder ID
+        box_folder_id = '283388373032'  # Replace with your Box folder ID
         filename = 'scraped_next_data.json'
         upload_data_to_box_json(json_data, box_folder_id, filename)
 
@@ -87,7 +87,8 @@ async def get_next_data():
 
             states_links = await page.eval_on_selector_all('div.state-list-container ul li a', 'elements => elements.map(el => el.href)')
             print(f"Found {len(states_links)} state links.")
-            states_links = states_links[5:]
+            
+            states_links = states_links[6:]
 
             # Loop through each state link
             for state_link in states_links:
@@ -115,7 +116,7 @@ async def get_next_data():
         print(f"Error during scraping: {e}")
         # Save any data that has been collected so far before exiting
         json_data = json.dumps(all_data, indent=4)
-        box_folder_id = '283381530874'  # Replace with your Box folder ID
+        box_folder_id = '283388373032'  # Replace with your Box folder ID
         filename = 'scraped_next_data_error.json'
         upload_data_to_box_json(json_data, box_folder_id, filename)
         print(f"Error encountered. Data uploaded to Box. Total records: {len(all_data)}")
