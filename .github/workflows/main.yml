@@ -33,4 +33,8 @@ jobs:
         run: |
           python pl.py
 
-      
+      - name: Upload data artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: scraped-data
+          path: Data/scraped_next_data_error132545445.csv
