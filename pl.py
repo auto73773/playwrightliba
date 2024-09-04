@@ -1,3 +1,6 @@
+
+# Initialize Dropbox client with your access token
+ACCESS_TOKEN='sl.B8TbI5UFhkYNSmtXQVjnbxjucSa_cEb2a1G-VjagiA3qzbtZtpf0LP-w7Lhoqw8PLkcpAi2uLE2aNraftyhqDLtx4iMwEA6JxRUgpHO2AeYYvGxorSz_P1d7FAofVgXJGEmvENFVtEm0AjbPL8_3'
 import json
 import asyncio
 import pandas as pd
@@ -5,14 +8,11 @@ from playwright.async_api import async_playwright
 import nest_asyncio
 import dropbox
 from io import StringIO
-import os
+
 # Allow nested event loops in Jupyter
 nest_asyncio.apply()
 
-#ACCESS_TOKEN=os.getenv('DROPBOX_ACCESS_TOKEN')
 # Initialize Dropbox client with your access token
-ACCESS_TOKEN='sl.B8TbI5UFhkYNSmtXQVjnbxjucSa_cEb2a1G-VjagiA3qzbtZtpf0LP-w7Lhoqw8PLkcpAi2uLE2aNraftyhqDLtx4iMwEA6JxRUgpHO2AeYYvGxorSz_P1d7FAofVgXJGEmvENFVtEm0AjbPL8_3'
-
 dbx = dropbox.Dropbox(ACCESS_TOKEN)
 
 # Dropbox upload function
@@ -114,6 +114,11 @@ async def get_next_data():
         df.to_csv(csv_buffer, index=False)
         csv_data = csv_buffer.getvalue()
         upload_data_to_dropbox(csv_data, '/scraped_next_data_error.csv')
+        print(f"Error encountered. Data uploaded to Dropbox. Total records: {len(all_data)}")
+
+# Run the async function in Jupyter Notebook
+asyncio.run(get_next_data())
+
         print(f"Error encountered. Data uploaded to Dropbox. Total records: {len(all_data)}")
 
 # Run the async function in Jupyter Notebook
