@@ -88,7 +88,7 @@ async def get_next_data():
             states_links = await page.eval_on_selector_all('div.state-list-container ul li a', 'elements => elements.map(el => el.href)')
             print(f"Found {len(states_links)} state links.")
             
-            states_links = states_links[6:]
+            states_links = states_links[7:]
 
             # Loop through each state link
             for state_link in states_links:
