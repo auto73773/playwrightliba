@@ -3,10 +3,10 @@ import asyncio
 import pandas as pd
 from playwright.async_api import async_playwright
 import nest_asyncio
-
+import os
 # Allow nested event loops in Jupyter
 nest_asyncio.apply()
-
+os.makedirs('Data', exist_ok=True)
 # Function to scrape a single service link using a new tab
 async def scrape_service_link(browser, service_link, state_link, city_link, all_data):
     page = await browser.new_page()  # Open a new tab
@@ -65,7 +65,7 @@ async def scrape_service_link(browser, service_link, state_link, city_link, all_
     finally:
         # Save data to CSV after each link attempt
         df = pd.DataFrame(all_data)
-        df.to_csv('/Data/scraped_next_data12524323435521.csv', index=False)
+        df.to_csv('Data/scraped_next_data12524323435521.csv', index=False)
         await page.close()
 
 # Main function to scrape data
