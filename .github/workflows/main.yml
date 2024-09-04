@@ -38,3 +38,9 @@ jobs:
       - name: Run Playwright script
         run: |
           python pl.py
+
+      - name: Upload data artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: scraped-data
+          path: data/
