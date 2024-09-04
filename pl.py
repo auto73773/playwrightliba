@@ -8,7 +8,7 @@ from io import StringIO
 
 # Allow nested event loops in Jupyter
 nest_asyncio.apply()
-ACCESS_TOKEN= ${{ secrets.ACCESS_TOKEN }}
+ACCESS_TOKEN= {{ secrets.ACCESS_TOKEN }}
 # Initialize Dropbox client with your access token
 dbx = dropbox.Dropbox(ACCESS_TOKEN)
 
