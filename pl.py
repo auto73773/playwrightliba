@@ -119,7 +119,4 @@ async def get_next_data():
 # Run the async function in Jupyter Notebook
 asyncio.run(get_next_data())
 
-        print(f"Error encountered. Data uploaded to Dropbox. Total records: {len(all_data)}")
-
-# Run the async function in Jupyter Notebook
-asyncio.run(get_next_data())
+  
