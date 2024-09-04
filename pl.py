@@ -7,12 +7,8 @@ import nest_asyncio
 # Allow nested event loops in Jupyter
 nest_asyncio.apply()
 
-# Counter for successfully processed pages
-counter = 0
-
 # Function to scrape a single service link using a new tab
 async def scrape_service_link(browser, service_link, state_link, city_link, all_data):
-    global counter
     page = await browser.new_page()  # Open a new tab
     try:
         await page.route('**/*.{png,jpg,jpeg,gif,webp}', lambda route: route.abort())
@@ -22,11 +18,9 @@ async def scrape_service_link(browser, service_link, state_link, city_link, all_
 
         # Check for __NEXT_DATA__ element and extract if available
         next_data_exists = await page.evaluate('document.getElementById("__NEXT_DATA__") !== null')
+
         if next_data_exists:
             next_data_content = await page.evaluate('document.getElementById("__NEXT_DATA__").innerText')
-            counter += 1  # Increment counter for each successful extraction
-            print(f"Found the link {counter}: {service_link}")
-
             next_data = json.loads(next_data_content)
 
             # Store the extracted data
@@ -38,12 +32,40 @@ async def scrape_service_link(browser, service_link, state_link, city_link, all_
             }
             all_data.append(page_data)
         else:
-            print(f"No __NEXT_DATA__ found for URL: {service_link}")
+            try:
+                phone_no = await page.evaluate('document.querySelector("div.contact-container a:nth-of-type(2)") ? document.querySelector("div.contact-container a:nth-of-type(2)").href : "Not available"')
+                page_data = {
+                    "State URL": state_link,
+                    "City URL": city_link,
+                    "Service URL": service_link,
+                    "Phone Number": phone_no
+                }
+                all_data.append(page_data)
+            except Exception as inner_e:
+                print(f"Error extracting phone number: {inner_e}")
+
+            links = await page.eval_on_selector_all('//h5[@class="leading-7"]/a', 'elements => elements.map(el => el.href)')
+            if links:
+                for link in links:
+                    await page.goto(link, wait_until='networkidle', timeout=60000)
+                    phone_no = await page.evaluate('document.querySelector("div.contact-container a:nth-of-type(2)") ? document.querySelector("div.contact-container a:nth-of-type(2)").href : "Not available"')
+                    page_data = {
+                        "State URL": state_link,
+                        "City URL": city_link,
+                        "Service URL": service_link,
+                        "Phone Number": phone_no
+                    }
+                    all_data.append(page_data)
+            else:
+                print(f"No links found for URL: {service_link}")
 
     except Exception as e:
         print(f"Error scraping {service_link}: {e}")
 
     finally:
+        # Save data to CSV after each link attempt
+        df = pd.DataFrame(all_data)
+        df.to_csv('/Data/scraped_next_data12524323435521.csv', index=False)
         await page.close()
 
 # Main function to scrape data
@@ -60,9 +82,7 @@ async def get_next_data():
 
             states_links = await page.eval_on_selector_all('div.state-list-container ul li a', 'elements => elements.map(el => el.href)')
             print(f"Found {len(states_links)} state links.")
-
-            states_links = states_links[5:]
-
+            states_links = states_links[5:]  # Modify as needed
             # Loop through each state link
             for state_link in states_links:
                 await page.goto(state_link, wait_until='networkidle', timeout=60000)
@@ -75,10 +95,10 @@ async def get_next_data():
                     service_links = await page.eval_on_selector_all('div.xmd-content-main ul li a', 'elements => elements.map(el => el.href)')
                     print(f"Found {len(service_links)} service links for city: {city_link}")
 
-                    # Limit to 6 concurrent tasks for service links
-                    for i in range(0, len(service_links), 6):
+                    # Limit to 4 concurrent tasks for service links
+                    for i in range(0, len(service_links), 4):
                         tasks = []
-                        for service_link in service_links[i:i+6]:  # Open 6 links (tabs) at the same time
+                        for service_link in service_links[i:i+4]:  # Open 4 links (tabs) at the same time
                             tasks.append(scrape_service_link(browser, service_link, state_link, city_link, all_data))
 
                         await asyncio.gather(*tasks)
@@ -89,14 +109,8 @@ async def get_next_data():
         print(f"Error during scraping: {e}")
         # Save any data that has been collected so far before exiting
         df = pd.DataFrame(all_data)
-        df.to_csv('/content/drive/MyDrive/cs2/scraped_next_data_error1.csv', index=False)
-        print(f"Error encountered. Data saved to 'scraped_next_data_error1.csv'. Total records: {len(all_data)}")
-
-    # Save the final data
-    df = pd.DataFrame(all_data)
-    df.to_csv('/content/drive/MyDrive/cs2/scraped_next_data1.csv', index=False)
-    print(f"Scraping completed. Total records: {len(all_data)}")
+        df.to_csv('/Data/scraped_next_data_error132545445.csv', index=False)
+        print(f"Error encountered. Data saved to 'scraped_next_data_error14545445.csv'. Total records: {len(all_data)}")
 
 # Run the async function in Jupyter Notebook
-asyncio.run(get_next_data())
-
+await get_next_data()
