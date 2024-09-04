@@ -7,8 +7,16 @@ import nest_asyncio
 # Allow nested event loops in Jupyter
 nest_asyncio.apply()
 
+# Global counter variable
+service_page_counter = 0
+max_service_pages = 10
+
 # Function to scrape a single service link using a new tab
 async def scrape_service_link(browser, service_link, state_link, city_link, all_data):
+    global service_page_counter
+    if service_page_counter >= max_service_pages:
+        return  # Exit if the maximum number of service pages has been processed
+    
     page = await browser.new_page()  # Open a new tab
     try:
         await page.route('**/*.{png,jpg,jpeg,gif,webp}', lambda route: route.abort())
@@ -59,6 +67,9 @@ async def scrape_service_link(browser, service_link, state_link, city_link, all_
             else:
                 print(f"No links found for URL: {service_link}")
 
+        # Increment the counter after processing a service page
+        service_page_counter += 1
+
     except Exception as e:
         print(f"Error scraping {service_link}: {e}")
 
@@ -99,9 +110,20 @@ async def get_next_data():
                     for i in range(0, len(service_links), 4):
                         tasks = []
                         for service_link in service_links[i:i+4]:  # Open 4 links (tabs) at the same time
+                            if service_page_counter >= max_service_pages:
+                                break  # Exit if the maximum number of service pages has been processed
                             tasks.append(scrape_service_link(browser, service_link, state_link, city_link, all_data))
 
+                        if not tasks:
+                            break  # Exit if no more tasks are needed
+                        
                         await asyncio.gather(*tasks)
+
+                    if service_page_counter >= max_service_pages:
+                        break  # Exit city loop if maximum number of service pages has been processed
+
+                if service_page_counter >= max_service_pages:
+                    break  # Exit state loop if maximum number of service pages has been processed
 
             await browser.close()
 
