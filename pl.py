@@ -4,9 +4,13 @@ import pandas as pd
 from playwright.async_api import async_playwright
 import nest_asyncio
 import os
+
 # Allow nested event loops in Jupyter
 nest_asyncio.apply()
-os.makedirs('Data', exist_ok=True)
+
+# Ensure the 'data' directory exists
+os.makedirs('data', exist_ok=True)
+
 # Function to scrape a single service link using a new tab
 async def scrape_service_link(browser, service_link, state_link, city_link, all_data):
     page = await browser.new_page()  # Open a new tab
@@ -63,14 +67,12 @@ async def scrape_service_link(browser, service_link, state_link, city_link, all_
         print(f"Error scraping {service_link}: {e}")
 
     finally:
-        # Save data to CSV after each link attempt
-        df = pd.DataFrame(all_data)
-        df.to_csv('Data/scraped_next_data12524323435521.csv', index=False)
         await page.close()
 
 # Main function to scrape data
 async def get_next_data():
     all_data = []  # Store all scraped data
+    record_threshold = 10  # Number of records before saving
 
     try:
         async with async_playwright() as p:
@@ -103,14 +105,32 @@ async def get_next_data():
 
                         await asyncio.gather(*tasks)
 
+                        # Save data if threshold is reached
+                        if len(all_data) >= record_threshold:
+                            df = pd.DataFrame(all_data)
+                            df.to_csv('data/scraped_next_data_partial.csv', index=False)
+                            print(f"Saved partial data to 'data/scraped_next_data_partial.csv'. Records: {len(all_data)}")
+
+            # Save final data
+            if len(all_data) > 0:
+                df = pd.DataFrame(all_data)
+                df.to_csv('data/scraped_next_data_complete.csv', index=False)
+                print(f"Scraping completed. Total records saved to 'data/scraped_next_data_complete.csv': {len(all_data)}")
+
             await browser.close()
 
     except Exception as e:
         print(f"Error during scraping: {e}")
         # Save any data that has been collected so far before exiting
-        df = pd.DataFrame(all_data)
-        df.to_csv('/Data/scraped_next_data_error132545445.csv', index=False)
-        print(f"Error encountered. Data saved to 'scraped_next_data_error14545445.csv'. Total records: {len(all_data)}")
+        if len(all_data) > 0:
+            df = pd.DataFrame(all_data)
+            df.to_csv('data/scraped_next_data_error.csv', index=False)
+            print(f"Error encountered. Data saved to 'data/scraped_next_data_error.csv'. Total records: {len(all_data)}")
 
-# Run the async function in Jupyter Notebook
-await get_next_data()
+# Entry point for running the script
+def main():
+    asyncio.run(get_next_data())
+
+# Run the async function in the script
+if __name__ == "__main__":
+    main()
