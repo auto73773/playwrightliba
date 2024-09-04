@@ -1,29 +1,36 @@
-
-# Initialize Dropbox client with your access token
-ACCESS_TOKEN='sl.B8RsmXFOZH8Dej6LtWILRQjbe3pQxgW8YB7jQkvSd02IVDN-M_hJHro8kjIUKOp5QFNPZK4bt9nBL1TRiqQHU34ZIBNtVO0vWMePlAcFOKYRrS_MNpOb6OcsRtwHTtDQ4WjIPqfwddMs1nJLZaaYkLE'
 import json
 import asyncio
 import pandas as pd
 from playwright.async_api import async_playwright
 import nest_asyncio
-import dropbox
-from io import StringIO
-
+from boxsdk import Client, OAuth2
+from io import BytesIO
+import time
+from datetime import datetime
 # Allow nested event loops in Jupyter
 nest_asyncio.apply()
+def generate_unique_filename(base_name):
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    return f"{base_name}_{timestamp}.json"
+# Initialize Box client with your access token
+ACCESS_TOKEN = 'WMzz2VdVx3J8WG5IgiHRd4FcBStZSCJX'
+oauth2 = OAuth2(client_id=None, client_secret=None, access_token=ACCESS_TOKEN)
+client = Client(oauth2)
 
-# Initialize Dropbox client with your access token
-dbx = dropbox.Dropbox(ACCESS_TOKEN)
-
-# Dropbox upload function
-def upload_data_to_dropbox(data_content, dropbox_path):
+# Box upload function for JSON data
+def upload_data_to_box_json(data_content, box_folder_id, filename):
     try:
-        # Convert the data to bytes (assuming data_content is already in string format)
+        # Convert the JSON data to bytes
         data_bytes = data_content.encode('utf-8')
-        dbx.files_upload(data_bytes, dropbox_path, mode=dropbox.files.WriteMode('overwrite'))
-        print(f"Uploaded data to {dropbox_path}")
-    except dropbox.exceptions.ApiError as err:
-        print(f"Failed to upload data to {dropbox_path}: {err}")
+        
+        # Use BytesIO to create a file-like object from the bytes data
+        data_stream = BytesIO(data_bytes)
+        filename = generate_unique_filename(filename)
+        # Upload the file
+        client.folder(box_folder_id).upload_stream(data_stream, filename)
+        print(f"Uploaded data to Box folder ID {box_folder_id} with filename {filename}")
+    except Exception as err:
+        print(f"Failed to upload data to Box: {err}")
 
 # Function to scrape a single service link using a new tab
 async def scrape_service_link(browser, service_link, state_link, city_link, all_data):
@@ -46,7 +53,7 @@ async def scrape_service_link(browser, service_link, state_link, city_link, all_
                 "State URL": state_link,
                 "City URL": city_link,
                 "Service URL": service_link,
-                "Page Data": json.dumps(next_data)
+                "Page Data": next_data
             }
             all_data.append(page_data)
         else:
@@ -56,15 +63,13 @@ async def scrape_service_link(browser, service_link, state_link, city_link, all_
         print(f"Error scraping {service_link}: {e}")
 
     finally:
-        # Convert the scraped data (stored in `all_data` list) to a CSV string
-        df = pd.DataFrame(all_data)
-        csv_buffer = StringIO()
-        df.to_csv(csv_buffer, index=False)
-        csv_data = csv_buffer.getvalue()
+        # Convert the scraped data (stored in `all_data` list) to a JSON string
+        json_data = json.dumps(all_data, indent=4)
 
-        # Upload CSV string to Dropbox (overwrite mode)
-        dropbox_file_path = '/scraped_next_data.csv'
-        upload_data_to_dropbox(csv_data, dropbox_file_path)
+        # Upload JSON string to Box
+        box_folder_id = '283381530874'  # Replace with your Box folder ID
+        filename = 'scraped_next_data.json'
+        upload_data_to_box_json(json_data, box_folder_id, filename)
 
         await page.close()
 
@@ -109,17 +114,11 @@ async def get_next_data():
     except Exception as e:
         print(f"Error during scraping: {e}")
         # Save any data that has been collected so far before exiting
-        df = pd.DataFrame(all_data)
-        csv_buffer = StringIO()
-        df.to_csv(csv_buffer, index=False)
-        csv_data = csv_buffer.getvalue()
-        upload_data_to_dropbox(csv_data, '/scraped_next_data_error.csv')
-        print(f"Error encountered. Data uploaded to Dropbox. Total records: {len(all_data)}")
+        json_data = json.dumps(all_data, indent=4)
+        box_folder_id = '283381530874'  # Replace with your Box folder ID
+        filename = 'scraped_next_data_error.json'
+        upload_data_to_box_json(json_data, box_folder_id, filename)
+        print(f"Error encountered. Data uploaded to Box. Total records: {len(all_data)}")
 
 # Run the async function in Jupyter Notebook
 asyncio.run(get_next_data())
-
-# Run the async function in Jupyter Notebook
-
-
-  
