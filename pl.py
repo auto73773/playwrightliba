@@ -9,8 +9,10 @@ import os
 # Allow nested event loops in Jupyter
 nest_asyncio.apply()
 
-ACCESS_TOKEN=os.getenv('DROPBOX_ACCESS_TOKEN')
+#ACCESS_TOKEN=os.getenv('DROPBOX_ACCESS_TOKEN')
 # Initialize Dropbox client with your access token
+ACCESS_TOKEN='sl.B8TbI5UFhkYNSmtXQVjnbxjucSa_cEb2a1G-VjagiA3qzbtZtpf0LP-w7Lhoqw8PLkcpAi2uLE2aNraftyhqDLtx4iMwEA6JxRUgpHO2AeYYvGxorSz_P1d7FAofVgXJGEmvENFVtEm0AjbPL8_3'
+
 dbx = dropbox.Dropbox(ACCESS_TOKEN)
 
 # Dropbox upload function
