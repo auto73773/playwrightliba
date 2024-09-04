@@ -31,5 +31,9 @@ jobs:
       - name: Run Playwright script
         run: |
           python pl.py
-
-    
+      - name: Upload file to Dropbox
+        env:
+            DROPBOX_ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        run: |
+              python -c "
+        
