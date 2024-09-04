@@ -25,6 +25,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install dropbox
           pip install pandas==1.5.3 numpy==1.25.0 playwright
           playwright install
 
