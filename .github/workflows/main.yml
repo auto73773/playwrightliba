@@ -32,16 +32,4 @@ jobs:
         run: |
           python pl.py
 
-      - name: Commit files
-        run: |
-          if [ "$(git status --porcelain)" ]; then
-            git config --local user.name github-actions
-            git config --local user.email "actions@github.com"
-            git add data/*
-            git commit -m "GH ACTION Autorun $(date)"
-            git push origin master
-          else
-            echo "No changes to commit."
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
