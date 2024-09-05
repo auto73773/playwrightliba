@@ -108,15 +108,15 @@ async def get_next_data():
                     print(f"Found {len(service_links)} service links for city: {city_link}")
 
                     # Limit to 4 concurrent tasks for service links
-                    for i in range(0, len(service_links), 4):
+                    for i in range(0, len(service_links), 10):
                         tasks = []
-                        for service_link in service_links[i:i+2]:  # Open 2 links (tabs) at the same time
+                        for service_link in service_links[i:i+10]:  # Open 2 links (tabs) at the same time
                             tasks.append(scrape_service_link(browser, service_link, state_link, city_link, all_data))
 
                         await asyncio.gather(*tasks)
 
                     # Check if 5 minutes have passed since the last upload
-                    if time.time() - start_time >= 60:  # 300 seconds = 5 minutes
+                    if time.time() - start_time >= 100:  # 300 seconds = 5 minutes
                         json_data = json.dumps(all_data, indent=4)
                         box_folder_id = '283388373032'  # Replace with your Box folder ID
                         filename = 'scraped_next_data.json'  # File to overwrite
