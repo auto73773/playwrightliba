@@ -16,7 +16,7 @@ def generate_unique_filename(base_name):
     return f"{base_name}_{timestamp}.json"
 
 # Initialize Box client with your access token
-ACCESS_TOKEN = 'AiOUdXLl8U6EsD7SUkuiLGb9NCiZHqf1'
+ACCESS_TOKEN = 'iTsKhDFso3QVdVWXmlDbCm1mY2E2H8dh'
 oauth2 = OAuth2(client_id=None, client_secret=None, access_token=ACCESS_TOKEN)
 client = Client(oauth2)
 
@@ -108,7 +108,7 @@ async def get_next_data():
                     print(f"Found {len(service_links)} service links for city: {city_link}")
 
                     # Limit to 4 concurrent tasks for service links
-                    for i in range(0, len(service_links), 10):
+                    for i in range(0, len(service_links), 11):
                         tasks = []
                         for service_link in service_links[i:i+10]:  # Open 2 links (tabs) at the same time
                             tasks.append(scrape_service_link(browser, service_link, state_link, city_link, all_data))
