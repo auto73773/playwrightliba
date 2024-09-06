@@ -3,10 +3,13 @@ import asyncio
 import pandas as pd
 from playwright.async_api import async_playwright
 import nest_asyncio
-from boxsdk import Client, OAuth2
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
 from io import BytesIO
 import time
 from datetime import datetime
+import os
 
 # Allow nested event loops in Jupyter
 nest_asyncio.apply()
@@ -15,35 +18,53 @@ def generate_unique_filename(base_name):
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     return f"{base_name}_{timestamp}.json"
 
-# Initialize Box client with your access token
-ACCESS_TOKEN = 'iTsKhDFso3QVdVWXmlDbCm1mY2E2H8dh'
-oauth2 = OAuth2(client_id=None, client_secret=None, access_token=ACCESS_TOKEN)
-client = Client(oauth2)
+# Load JSON data from file.json
+with open('file.json', 'r') as f:
+    key_data = json.load(f)
 
-# Box upload function for JSON data
-def upload_data_to_box_json(data_content, box_folder_id, filename):
+# Initialize Google Drive client
+SCOPES = ['https://www.googleapis.com/auth/drive.file']
+SERVICE_ACCOUNT_FILE = key_data
+credentials = service_account.Credentials.from_service_account_info(key_data, scopes=SCOPES)
+drive_service = build('drive', 'v3', credentials=credentials)
+
+# Google Drive upload function for JSON data
+def upload_data_to_drive_json(data_content, folder_id, filename):
     try:
         # Convert the JSON data to bytes
         data_bytes = data_content.encode('utf-8')
         
         # Use BytesIO to create a file-like object from the bytes data
         data_stream = BytesIO(data_bytes)
- 
+
         # Generate a unique filename or use a fixed one
         unique_filename = generate_unique_filename(filename)  # Or use a fixed name
 
         # Check if the file exists and delete if necessary
-        existing_files = client.folder(box_folder_id).get_items()
+        existing_files = drive_service.files().list(
+            q=f"'{folder_id}' in parents and name='{unique_filename}'",
+            spaces='drive',
+            fields='files(id, name)'
+        ).execute().get('files', [])
+
         for item in existing_files:
-            if item.name == unique_filename:
-                client.file(item.id).delete()
-                print(f"Deleted existing file with name {unique_filename}")
+            drive_service.files().delete(fileId=item['id']).execute()
+            print(f"Deleted existing file with name {unique_filename}")
 
         # Upload the file
-        client.folder(box_folder_id).upload_stream(data_stream, unique_filename)
-        print(f"Uploaded data to Box folder ID {box_folder_id} with filename {unique_filename}")
+        media = MediaIoBaseUpload(data_stream, mimetype='application/json')
+        file_metadata = {
+            'name': unique_filename,
+            'parents': [folder_id]
+        }
+        drive_service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id, name'
+        ).execute()
+        print(f"Uploaded data to Google Drive folder ID {folder_id} with filename {unique_filename}")
     except Exception as err:
-        print(f"Failed to upload data to Box: {err}")
+        print(f"Failed to upload data to Google Drive: {err}")
 
 # Function to scrape a single service link using a new tab
 async def scrape_service_link(browser, service_link, state_link, city_link, all_data):
@@ -78,7 +99,7 @@ async def scrape_service_link(browser, service_link, state_link, city_link, all_
     finally:
         await page.close()
 
-# Main function to scrape data with 5-minute uploads
+# Main function to scrape data with 1-minute uploads
 async def get_next_data():
     all_data = []  # Store all scraped data
     start_time = time.time()  # Record the start time
@@ -93,7 +114,7 @@ async def get_next_data():
 
             states_links = await page.eval_on_selector_all('div.state-list-container ul li a', 'elements => elements.map(el => el.href)')
             print(f"Found {len(states_links)} state links.")
-            states_links = states_links[13:]
+            states_links = states_links[23:]
 
             # Loop through each state link
             for state_link in states_links:
@@ -108,41 +129,41 @@ async def get_next_data():
                     print(f"Found {len(service_links)} service links for city: {city_link}")
 
                     # Limit to 4 concurrent tasks for service links
-                    for i in range(0, len(service_links), 11):
+                    for i in range(0, len(service_links), 10):
                         tasks = []
-                        for service_link in service_links[i:i+10]:  # Open 2 links (tabs) at the same time
+                        for service_link in service_links[i:i+10]:  # Open 10 links (tabs) at the same time
                             tasks.append(scrape_service_link(browser, service_link, state_link, city_link, all_data))
 
                         await asyncio.gather(*tasks)
 
-                    # Check if 5 minutes have passed since the last upload
-                    if time.time() - start_time >= 100:  # 300 seconds = 5 minutes
+                    # Check if 1 minute has passed since the last upload
+                    if time.time() - start_time >= 1200:  # 60 seconds = 1 minute
                         json_data = json.dumps(all_data, indent=4)
-                        box_folder_id = '283388373032'  # Replace with your Box folder ID
+                        drive_folder_id = '11cJWbuEbwFcmwT7MNArfNWsN5Jh466Wg'  # Replace with your Google Drive folder ID
                         filename = 'scraped_next_data.json'  # File to overwrite
-                        upload_data_to_box_json(json_data, box_folder_id, filename)
+                        upload_data_to_drive_json(json_data, drive_folder_id, filename)
 
-                        # Reset start time for the next 5 minutes
+                        # Reset start time for the next minute
                         start_time = time.time()
-                        print(f"Data uploaded to Box after 5 minutes. Total records: {len(all_data)}")
+                        print(f"Data uploaded to Google Drive after 1 minute. Total records: {len(all_data)}")
 
             await browser.close()
 
         # Final upload after all scraping is done
         json_data = json.dumps(all_data, indent=4)
-        box_folder_id = '283388373032'  # Replace with your Box folder ID
+        drive_folder_id = '11cJWbuEbwFcmwT7MNArfNWsN5Jh466Wg'  # Replace with your Google Drive folder ID
         filename = 'scraped_next_data_final.json'
-        upload_data_to_box_json(json_data, box_folder_id, filename)
+        upload_data_to_drive_json(json_data, drive_folder_id, filename)
         print(f"Final data upload complete. Total records: {len(all_data)}")
 
     except Exception as e:
         print(f"Error during scraping: {e}")
         # Save any data that has been collected so far before exiting
         json_data = json.dumps(all_data, indent=4)
-        box_folder_id = '283388373032'  # Replace with your Box folder ID
+        drive_folder_id = '11cJWbuEbwFcmwT7MNArfNWsN5Jh466Wg'  # Replace with your Google Drive folder ID
         filename = 'scraped_next_data_error.json'
-        upload_data_to_box_json(json_data, box_folder_id, filename)
-        print(f"Error encountered. Data uploaded to Box. Total records: {len(all_data)}")
+        upload_data_to_drive_json(json_data, drive_folder_id, filename)
+        print(f"Error encountered. Data uploaded to Google Drive. Total records: {len(all_data)}")
 
-# Run the async function in Jupyter Notebook
+# Run the async function
 asyncio.run(get_next_data())
